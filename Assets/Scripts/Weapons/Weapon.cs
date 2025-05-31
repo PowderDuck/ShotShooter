@@ -1,3 +1,4 @@
+using System;
 using DG.Tweening;
 using UnityEngine;
 
@@ -22,7 +23,9 @@ namespace ShotShooter.Assets.Scripts.Weapons
         protected int _currentMagazine { get; set; } = 0;
         protected int _currentAmmo { get; set; } = 0;
 
-        private Tweener _fireTween { get; set; } = default!;
+        private bool _isFiring { get; set; } = false;
+
+        public event Action WeaponReady;
 
         protected virtual void Start()
         {
@@ -32,8 +35,7 @@ namespace ShotShooter.Assets.Scripts.Weapons
 
         public virtual void Shoot()
         {
-            if (_fireTween != null
-                && _fireTween.IsPlaying())
+            if (_isFiring)
             {
                 return;
             }
@@ -45,10 +47,10 @@ namespace ShotShooter.Assets.Scripts.Weapons
                 return;
             }
 
+            _isFiring = true;
             Fire();
 
-            _fireTween = DOVirtual
-                .Float(0, 1, FireRate, null);
+            DOVirtual.DelayedCall(FireRate, EnableWeapon);
 
             if (_currentMagazine > 0)
             {
@@ -60,6 +62,8 @@ namespace ShotShooter.Assets.Scripts.Weapons
                 }
             }
         }
+
+        public virtual void Release() { }
 
         protected abstract void Fire();
 
@@ -75,6 +79,12 @@ namespace ShotShooter.Assets.Scripts.Weapons
 
                 // TODO: Play reload animation
             }
+        }
+
+        private void EnableWeapon()
+        {
+            _isFiring = false;
+            WeaponReady?.Invoke();
         }
     }
 }

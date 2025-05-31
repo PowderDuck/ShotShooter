@@ -17,6 +17,11 @@ namespace ShotShooter.Assets.Scripts.Controllers
                 _currentWeapon?.Shoot();
             }
 
+            if (Input.GetKeyUp(KeyCode.Mouse0))
+            {
+                _currentWeapon?.Release();
+            }
+
             if (Input.GetKeyDown(KeyCode.Mouse1))
             {
                 CameraController.Instance.Zoom(true);

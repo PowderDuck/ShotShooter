@@ -61,6 +61,11 @@ namespace ShotShooter.Assets.Scripts.Controllers
 
         public void SetTarget(GameObject target) => _target = target;
 
+        public void Shake(float amplitude)
+        {
+            transform.DOShakeRotation(0.2f);
+        }
+
         public void Zoom(bool zoom)
         {
             var duration = _zoomDuration;
