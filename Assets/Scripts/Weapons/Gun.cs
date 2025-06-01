@@ -1,8 +1,6 @@
-using UnityEngine;
-
 namespace ShotShooter.Assets.Scripts.Weapons
 {
-    public class Gun : Weapon
+    public class Gun : ControlledWeapon
     {
         private bool _isHolding { get; set; } = false;
 
@@ -21,11 +19,6 @@ namespace ShotShooter.Assets.Scripts.Weapons
         }
 
         public override void Release() => _isHolding = false;
-
-        protected override void Fire()
-        {
-            Debug.Log("Gun Fired !");
-        }
 
         private void Reshoot()
         {

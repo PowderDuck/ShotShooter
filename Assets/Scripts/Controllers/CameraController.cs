@@ -1,4 +1,6 @@
 using DG.Tweening;
+using DG.Tweening.Core;
+using DG.Tweening.Plugins.Options;
 using UnityEngine;
 
 namespace ShotShooter.Assets.Scripts.Controllers
@@ -6,41 +8,36 @@ namespace ShotShooter.Assets.Scripts.Controllers
     public class CameraController : Singleton<CameraController>
     {
         [SerializeField] private GameObject _target = default!;
-        [SerializeField] private Vector3 _offset = new(2, 1, -4);
-        [SerializeField] private Vector3 _zoomOffset = new(2, 1, -2);
+        [SerializeField] private Vector3 _staticOffset = new(1, 2, 0);
+        [SerializeField] private Vector3 _zoomOutOffset = new(2, 1, -4);
+        [SerializeField] private Vector3 _zoomInOffset = new(2, 1, -2);
         [SerializeField] private float _zoomDuration = 0.5f;
 
-        [SerializeField] private Vector2 _boundaries = new(360f, 90f);
+        [SerializeField] private float _yBoundary = 30f;
         [SerializeField] private float _rotationSpeed = 1f;
 
         private Vector2 _currentRotation = Vector2.zero;
         private Vector2 _destinationRotation = Vector2.zero;
-        private Vector3 _radialOffset = Vector3.zero;
+        private Vector2 _shakeRotation = Vector2.zero;
 
         private Vector2 _mouseDelta = Vector2.zero;
 
         private Tweener _zoomTween { get; set; } = default!;
         private Vector3 _currentOffset { get; set; } = default!;
 
+        private TweenerCore<Quaternion, Vector3, QuaternionOptions> _shakeTween { get; set; } = default!;
+
         private void Start()
         {
-            _currentOffset = _offset;
+            _currentOffset = _zoomOutOffset;
         }
 
         private void Update()
         {
-            UpdateRotation();
-
-            if (_target != null)
-            {
-                transform.position = _target.transform.position
-                    + (RadialOffset() * _currentOffset.magnitude);
-                /*transform.position = _target.transform.position
-                    + _currentOffset + (RadialOffset() * _currentOffset.magnitude);*/
-            }
+            UpdatePositionAndRotation();
         }
 
-        private void UpdateRotation()
+        private void UpdatePositionAndRotation()
         {
             _mouseDelta.Set(
                 Input.GetAxis("Mouse X"),
@@ -48,28 +45,47 @@ namespace ShotShooter.Assets.Scripts.Controllers
 
             _destinationRotation += _mouseDelta;
             _destinationRotation.Set(
-                Mathf.Clamp(_destinationRotation.x % 360f, -_boundaries.x, _boundaries.x),
-                Mathf.Clamp(_destinationRotation.y, -_boundaries.y, _boundaries.y));
+                _destinationRotation.x,
+                Mathf.Clamp(_destinationRotation.y, -_yBoundary, _yBoundary));
 
             var difference = _destinationRotation - _currentRotation;
             _currentRotation.Set(
                 _currentRotation.x + (Mathf.Clamp(difference.x / _rotationSpeed, -1f, 1f) * _rotationSpeed),
                 _currentRotation.y + (Mathf.Clamp(difference.y / _rotationSpeed, -1f, 1f) * _rotationSpeed));
 
-            transform.eulerAngles = new(-_currentRotation.y, _currentRotation.x);
+            var radial = RadialOffset();
+            if (_target != null)
+            {
+                transform.position = _target.transform.position
+                    + (_target.transform.right * _staticOffset.x)
+                    + (_target.transform.up * _staticOffset.y)
+                    + (_target.transform.forward * _staticOffset.z)
+                    + (radial * _currentOffset.magnitude);
+            }
+
+            transform.rotation = Quaternion.LookRotation(-radial + (Vector3)_shakeRotation); // TODO: !!!
         }
 
-        public void SetTarget(GameObject target) => _target = target;
-
-        public void Shake(float amplitude)
+        public void Shake(Vector2 eulerOffset, float duration)
         {
-            transform.DOShakeRotation(0.2f);
+            // _shakeTween.Kill();
+
+            var initialRotation = transform.eulerAngles;
+            _shakeRotation = new Vector3(
+                initialRotation.x + eulerOffset.x,
+                initialRotation.y + eulerOffset.y,
+                initialRotation.z);
+
+            transform.eulerAngles = _shakeRotation;
+            // _shakeTween = transform.DORotate(initialRotation, duration);
         }
 
         public void Zoom(bool zoom)
         {
             var duration = _zoomDuration;
-            if (_zoomTween != null && _zoomTween.IsPlaying())
+            if (_zoomTween != null
+                && _zoomTween.IsActive()
+                && _zoomTween.IsPlaying())
             {
                 duration = _zoomDuration - _zoomTween.Elapsed();
             }
@@ -77,7 +93,7 @@ namespace ShotShooter.Assets.Scripts.Controllers
             _zoomTween.Kill();
             _zoomTween = DOVirtual.Vector3(
                 _currentOffset,
-                zoom ? _zoomOffset : _offset,
+                zoom ? _zoomInOffset : _zoomOutOffset,
                 duration,
                 position => _currentOffset = position)
                 .SetEase(Ease.Linear);
@@ -87,11 +103,11 @@ namespace ShotShooter.Assets.Scripts.Controllers
         {
             var horizontal = new Vector3(
                 Mathf.Sin(_currentRotation.x * Mathf.Deg2Rad),
-                Mathf.Cos(_currentRotation.x * Mathf.Deg2Rad),
-                0f);
+                0f,
+                Mathf.Cos(_currentRotation.x * Mathf.Deg2Rad));
 
-            return (horizontal * Mathf.Sin(_currentRotation.y * Mathf.Deg2Rad))
-                + new Vector3(0f, Mathf.Cos(_currentRotation.y * Mathf.Deg2Rad), 0f);
+            return (horizontal * Mathf.Sin((_currentRotation.y + 90) * Mathf.Deg2Rad))
+                + new Vector3(0f, Mathf.Cos((_currentRotation.y + 90) * Mathf.Deg2Rad), 0f);
         }
     }
 }
