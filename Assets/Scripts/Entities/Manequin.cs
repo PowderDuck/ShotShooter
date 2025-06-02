@@ -21,7 +21,7 @@ namespace ShotShooter.Assets.Scripts.Entities
         {
             Health -= damage;
             _animator.SetTrigger(
-                Health <= 0 ? "die" : $"take_damage{++_hitIndex % 2}");
+                Health <= 0 ? "die" : $"take_damage_{++_hitIndex % 2}");
 
             if (Health <= 0)
             {

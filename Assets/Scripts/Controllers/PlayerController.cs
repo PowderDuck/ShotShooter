@@ -1,4 +1,6 @@
 using System;
+using ShotShooter.Assets.Scripts.Damageables;
+using ShotShooter.Assets.Scripts.Managers;
 using ShotShooter.Assets.Scripts.Weapons;
 using UnityEngine;
 
@@ -8,6 +10,7 @@ namespace ShotShooter.Assets.Scripts.Controllers
     {
         [SerializeField] private Weapon _currentWeapon = default!;
         [SerializeField] private Transform _weaponHolder = default!;
+        [SerializeField] private float _weaponThrowForce = 100f;
 
         [SerializeField] private float _movementSpeed = 10;
 
@@ -17,40 +20,54 @@ namespace ShotShooter.Assets.Scripts.Controllers
 
         private Vector3 _dynamicRotation = Vector3.zero;
 
+        private int _aimingLayerIndex { get; set; } = 0;
+
         public event Action<Weapon> WeaponChanged;
+        public event Action<IDamageable> TargetHit;
 
         private void Start()
         {
             _rigidbody = GetComponent<Rigidbody>();
+
             _animator = GetComponent<Animator>();
+            _aimingLayerIndex = _animator.GetLayerIndex("Aiming Layer");
+
+            TargetHit += EventManager.OnTargetHit;
         }
 
         private void Update()
+        {
+            HandleWeapon();
+            HandleZoom();
+        }
+
+        private void FixedUpdate() => Move();
+
+        private void HandleWeapon()
         {
             if (Input.GetKeyDown(KeyCode.Mouse0))
             {
                 _currentWeapon?.Shoot();
             }
-
-            if (Input.GetKeyUp(KeyCode.Mouse0))
+            else if (Input.GetKeyUp(KeyCode.Mouse0))
             {
                 _currentWeapon?.Release();
             }
+        }
 
+        private void HandleZoom()
+        {
             if (Input.GetKeyDown(KeyCode.Mouse1))
             {
                 CameraController.Instance.Zoom(true);
             }
-
-            if (Input.GetKeyUp(KeyCode.Mouse1))
+            else if (Input.GetKeyUp(KeyCode.Mouse1))
             {
                 CameraController.Instance.Zoom(false);
             }
         }
 
-        private void FixedUpdate() => Movement();
-
-        private void Movement()
+        private void Move()
         {
             _movement.Set(
                 Input.GetAxis("Horizontal"),
@@ -60,11 +77,14 @@ namespace ShotShooter.Assets.Scripts.Controllers
             _rigidbody.velocity = _movementSpeed
                 * ((_movement.x * transform.right) + (_movement.z * transform.forward));
 
-            _dynamicRotation.Set(
-                transform.eulerAngles.x,
-                CameraController.Instance.transform.eulerAngles.y,
-                transform.eulerAngles.z);
-            transform.eulerAngles = _dynamicRotation;
+            if (_movement.magnitude > 0)
+            {
+                _dynamicRotation.Set(
+                    transform.eulerAngles.x,
+                    CameraController.Instance.transform.eulerAngles.y,
+                    transform.eulerAngles.z);
+                transform.eulerAngles = _dynamicRotation;
+            }
 
             _animator.SetFloat("movement", _movement.magnitude);
         }
@@ -73,26 +93,64 @@ namespace ShotShooter.Assets.Scripts.Controllers
         {
             if (_currentWeapon != null)
             {
-                _currentWeapon.transform.SetParent(null);
                 ManageWeaponComponents(true);
+
+                _currentWeapon
+                    .GetComponent<Rigidbody>()
+                    .AddForce(new Vector3(0, 1, 1) * _weaponThrowForce);
             }
 
             _currentWeapon = weapon;
-            _currentWeapon.transform.SetParent(_weaponHolder);
-            _currentWeapon.transform
-                .SetLocalPositionAndRotation(Vector3.zero, Quaternion.LookRotation(-_weaponHolder.up));
-            ManageWeaponComponents(false);
+
+            var hasWeapon = _currentWeapon != null;
+            _animator.SetLayerWeight(
+                _aimingLayerIndex, hasWeapon ? 1 : 0);
+
+            if (hasWeapon)
+            {
+                ManageWeaponComponents(false);
+                _currentWeapon.transform
+                    .SetLocalPositionAndRotation(Vector3.zero, Quaternion.LookRotation(-_weaponHolder.up));
+            }
 
             WeaponChanged?.Invoke(_currentWeapon);
 
             // TODO: Pickup animation
         }
 
+        private void OnTargetHit(IDamageable damageable)
+        {
+            TargetHit?.Invoke(damageable);
+        }
+
         private void ManageWeaponComponents(bool enable)
         {
+            if (enable)
+            {
+                _currentWeapon.TargetHit -= OnTargetHit;
+            }
+            else
+            {
+                _currentWeapon.TargetHit += OnTargetHit;
+            }
+
+            _currentWeapon.transform.SetParent(enable ? null : _weaponHolder);
+
             _currentWeapon.GetComponent<Collider>().enabled = enable;
-            _currentWeapon.GetComponent<Rigidbody>().useGravity = enable;
-            _currentWeapon.GetComponent<Rigidbody>().isKinematic = !enable;
+
+            var rigidbody = _currentWeapon.GetComponent<Rigidbody>();
+            rigidbody.useGravity = enable;
+            rigidbody.isKinematic = !enable;
+        }
+
+        private void OnDisable()
+        {
+            if (_currentWeapon != null)
+            {
+                _currentWeapon.TargetHit -= OnTargetHit;
+
+                TargetHit -= EventManager.OnTargetHit;
+            }
         }
     }
 }

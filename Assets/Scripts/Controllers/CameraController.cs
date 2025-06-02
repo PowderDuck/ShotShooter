@@ -1,6 +1,4 @@
 using DG.Tweening;
-using DG.Tweening.Core;
-using DG.Tweening.Plugins.Options;
 using UnityEngine;
 
 namespace ShotShooter.Assets.Scripts.Controllers
@@ -25,7 +23,7 @@ namespace ShotShooter.Assets.Scripts.Controllers
         private Tweener _zoomTween { get; set; } = default!;
         private Vector3 _currentOffset { get; set; } = default!;
 
-        private TweenerCore<Quaternion, Vector3, QuaternionOptions> _shakeTween { get; set; } = default!;
+        private Tweener _shakeTween { get; set; } = default!;
 
         private void Start()
         {
@@ -63,12 +61,12 @@ namespace ShotShooter.Assets.Scripts.Controllers
                     + (radial * _currentOffset.magnitude);
             }
 
-            transform.rotation = Quaternion.LookRotation(-radial + (Vector3)_shakeRotation); // TODO: !!!
+            transform.rotation = Quaternion.LookRotation(-radial);
         }
 
         public void Shake(Vector2 eulerOffset, float duration)
         {
-            // _shakeTween.Kill();
+            _shakeTween?.Kill(true);
 
             var initialRotation = transform.eulerAngles;
             _shakeRotation = new Vector3(
@@ -77,7 +75,12 @@ namespace ShotShooter.Assets.Scripts.Controllers
                 initialRotation.z);
 
             transform.eulerAngles = _shakeRotation;
-            // _shakeTween = transform.DORotate(initialRotation, duration);
+
+            _shakeTween = DOVirtual.Vector3(
+                eulerOffset,
+                Vector3.zero,
+                duration,
+                rotation => _shakeRotation = rotation);
         }
 
         public void Zoom(bool zoom)
@@ -101,13 +104,14 @@ namespace ShotShooter.Assets.Scripts.Controllers
 
         private Vector3 RadialOffset()
         {
+            var rotation = _currentRotation + _shakeRotation;
             var horizontal = new Vector3(
-                Mathf.Sin(_currentRotation.x * Mathf.Deg2Rad),
+                Mathf.Sin(rotation.x * Mathf.Deg2Rad),
                 0f,
-                Mathf.Cos(_currentRotation.x * Mathf.Deg2Rad));
+                Mathf.Cos(rotation.x * Mathf.Deg2Rad));
 
-            return (horizontal * Mathf.Sin((_currentRotation.y + 90) * Mathf.Deg2Rad))
-                + new Vector3(0f, Mathf.Cos((_currentRotation.y + 90) * Mathf.Deg2Rad), 0f);
+            return (horizontal * Mathf.Sin((rotation.y + 90) * Mathf.Deg2Rad))
+                + new Vector3(0f, Mathf.Cos((rotation.y + 90) * Mathf.Deg2Rad), 0f);
         }
     }
 }

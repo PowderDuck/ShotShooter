@@ -7,12 +7,14 @@ namespace ShotShooter.Assets.Scripts.Weapons
 {
     public class ControlledWeapon : Weapon
     {
+        [SerializeField] private float _maxDistance = 10;
+
         [SerializeField] protected int _overshoot = 10;
-        [SerializeField] private float _overshootDegree = 4;
         [SerializeField] protected float _cooldownDuration = 0.5f;
 
         [SerializeField] protected GameObject _hitEffectPrefab = default!;
 
+        // The controlled horizontal and vertical displacement of the weapon aim
         [SerializeField] protected AnimationCurve _horizontalCurve = default!;
         [SerializeField] protected AnimationCurve _verticalCurve = default!;
 
@@ -39,14 +41,14 @@ namespace ShotShooter.Assets.Scripts.Weapons
 
             _ray.origin = CameraController.Instance.transform.position;
             _ray.direction = CameraController.Instance.transform.forward;
-            if (Physics.Raycast(_ray, out _hitInfo, 10))
+            if (Physics.Raycast(_ray, out _hitInfo, _maxDistance))
             {
                 if (_hitInfo.collider != null)
                 {
                     if (_hitInfo.collider.TryGetComponent<IDamageable>(
                         out var damageable))
                     {
-                        damageable.TakeDamage(_damage);
+                        damageable.TakeDamage(Damage);
                         HitTarget(damageable);
                     }
 
@@ -63,8 +65,8 @@ namespace ShotShooter.Assets.Scripts.Weapons
         {
             var overshootPercentage = Mathf.Min((float)_currentOvershoot / _overshoot, 1);
             CameraController.Instance.Shake(
-                new(_verticalCurve.Evaluate(overshootPercentage) * _overshootDegree,
-                    _horizontalCurve.Evaluate(overshootPercentage) * _overshootDegree), _fireRate);
+                new(_verticalCurve.Evaluate(overshootPercentage) * _recoil,
+                    _horizontalCurve.Evaluate(overshootPercentage) * _recoil), _fireRate);
         }
 
         private void ResetOvershoot()

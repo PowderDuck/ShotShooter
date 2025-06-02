@@ -6,9 +6,11 @@ using UnityEngine;
 
 namespace ShotShooter.Assets.Scripts.Weapons
 {
-    public abstract class Weapon : MonoBehaviour
+    public abstract class Weapon : MonoBehaviour, IWeapon
     {
-        [SerializeField] protected float _damage = 1;
+        [field: SerializeField]
+        public float Damage { get; private set; }
+
         [SerializeField] protected int _magazineCapacity = 20;
         [SerializeField] protected int _maxAmmo = 60;
         [SerializeField] protected float _fireRate = 0.5f;
@@ -38,8 +40,7 @@ namespace ShotShooter.Assets.Scripts.Weapons
                 return;
             }
 
-            if (_currentMagazine <= 0
-                && _currentAmmo <= 0)
+            if (_currentMagazine <= 0 && _currentAmmo <= 0)
             {
                 // TODO: Play empty magazine sound
                 return;
@@ -53,8 +54,7 @@ namespace ShotShooter.Assets.Scripts.Weapons
             if (_currentMagazine > 0)
             {
                 _currentMagazine--;
-                if (_currentMagazine <= 0
-                    && _currentAmmo > 0)
+                if (_currentMagazine <= 0 && _currentAmmo > 0)
                 {
                     _isReloading = true;
                     DOVirtual.DelayedCall(_reloadDuration, Reload);
@@ -75,8 +75,6 @@ namespace ShotShooter.Assets.Scripts.Weapons
             {
                 _currentMagazine += supplyAmmo;
                 _currentAmmo -= supplyAmmo;
-
-                // TODO: Play reload animation
             }
 
             _isReloading = false;
