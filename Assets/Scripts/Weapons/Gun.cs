@@ -28,6 +28,13 @@ namespace ShotShooter.Assets.Scripts.Weapons
             }
         }
 
+        protected override void OnWeaponChanged(Weapon weapon)
+        {
+            base.OnWeaponChanged(weapon);
+
+            OnDisable();
+        }
+
         private void OnDisable()
         {
             WeaponReady -= Reshoot;

@@ -8,17 +8,20 @@ namespace ShotShooter.Assets.Scripts.Controllers
 {
     public class PlayerController : MonoBehaviour
     {
-        [SerializeField] private Weapon _currentWeapon = default!;
         [SerializeField] private Transform _weaponHolder = default!;
         [SerializeField] private float _weaponThrowForce = 100f;
 
         [SerializeField] private float _movementSpeed = 10;
+        [SerializeField] private float _rotationSpeed = 10;
+
+        private Weapon _currentWeapon = default!;
 
         private Vector3 _movement = Vector3.zero;
         private Rigidbody _rigidbody { get; set; } = default!;
         private Animator _animator { get; set; } = default!;
 
-        private Vector3 _dynamicRotation = Vector3.zero;
+        private Vector3 _currentRotation = Vector3.zero;
+        private Vector3 _destinationRotation = Vector3.zero;
 
         private int _aimingLayerIndex { get; set; } = 0;
 
@@ -39,6 +42,8 @@ namespace ShotShooter.Assets.Scripts.Controllers
         {
             HandleWeapon();
             HandleZoom();
+
+            Rotate();
         }
 
         private void FixedUpdate() => Move();
@@ -79,14 +84,25 @@ namespace ShotShooter.Assets.Scripts.Controllers
 
             if (_movement.magnitude > 0)
             {
-                _dynamicRotation.Set(
+                _destinationRotation.Set(
                     transform.eulerAngles.x,
                     CameraController.Instance.transform.eulerAngles.y,
                     transform.eulerAngles.z);
-                transform.eulerAngles = _dynamicRotation;
             }
 
             _animator.SetFloat("movement", _movement.magnitude);
+        }
+
+        private void Rotate()
+        {
+            var differenceX = Mathf.DeltaAngle(_currentRotation.x, _destinationRotation.x);
+            var differenceY = Mathf.DeltaAngle(_currentRotation.y, _destinationRotation.y);
+            _currentRotation.Set(
+                _currentRotation.x + (Mathf.Clamp(differenceX / _rotationSpeed, -1f, 1f) * _rotationSpeed),
+                _currentRotation.y + (Mathf.Clamp(differenceY / _rotationSpeed, -1f, 1f) * _rotationSpeed),
+                transform.eulerAngles.z);
+
+            transform.eulerAngles = _currentRotation;
         }
 
         public void SetWeapon(Weapon weapon)
@@ -136,7 +152,7 @@ namespace ShotShooter.Assets.Scripts.Controllers
 
             _currentWeapon.transform.SetParent(enable ? null : _weaponHolder);
 
-            _currentWeapon.GetComponent<Collider>().enabled = enable;
+            _currentWeapon.GetComponentsInChildren<Collider>()[0].enabled = enable;
 
             var rigidbody = _currentWeapon.GetComponent<Rigidbody>();
             rigidbody.useGravity = enable;

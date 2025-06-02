@@ -23,7 +23,8 @@ namespace ShotShooter.Assets.Scripts.Utils
         private void DisableEffect()
         {
             Finished?.Invoke(this);
-            gameObject.SetActive(false);
+            Destroy(gameObject);
+            // gameObject.SetActive(false);
         }
 
         private void OnDisable()
