@@ -68,13 +68,8 @@ namespace ShotShooter.Assets.Scripts.Controllers
         {
             _shakeTween?.Kill(true);
 
-            var initialRotation = transform.eulerAngles;
-            _shakeRotation = new Vector3(
-                initialRotation.x + eulerOffset.x,
-                initialRotation.y + eulerOffset.y,
-                initialRotation.z);
-
-            transform.eulerAngles = _shakeRotation;
+            _shakeRotation.Set(eulerOffset.x, eulerOffset.y);
+            transform.rotation = Quaternion.LookRotation(-RadialOffset());
 
             _shakeTween = DOVirtual.Vector3(
                 eulerOffset,

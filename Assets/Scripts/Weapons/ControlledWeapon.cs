@@ -52,11 +52,10 @@ namespace ShotShooter.Assets.Scripts.Weapons
                         HitTarget(damageable);
                     }
 
-                    var hitEffect = Instantiate(_hitEffectPrefab);
-                    hitEffect.transform.position = _hitInfo.point;
-                    /*var hitEffect = Pooler.Instance
+                    var hitEffect = Pooler.Instance
                         .GetOrCreateObject<ParticleSystem>(_hitEffectPrefab);
-                    hitEffect.transform.position = hitInfo.point;*/
+                    hitEffect.gameObject.SetActive(true);
+                    hitEffect.transform.position = _hitInfo.point;
                 }
             }
         }
@@ -65,8 +64,8 @@ namespace ShotShooter.Assets.Scripts.Weapons
         {
             var overshootPercentage = Mathf.Min((float)_currentOvershoot / _overshoot, 1);
             CameraController.Instance.Shake(
-                new(_verticalCurve.Evaluate(overshootPercentage) * _recoil,
-                    _horizontalCurve.Evaluate(overshootPercentage) * _recoil), _fireRate);
+                new(_horizontalCurve.Evaluate(overshootPercentage) * _recoil,
+                    _verticalCurve.Evaluate(overshootPercentage) * _recoil), _fireRate);
         }
 
         private void ResetOvershoot()

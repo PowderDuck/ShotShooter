@@ -23,8 +23,9 @@ namespace ShotShooter.Assets.Scripts.Utils
         private void DisableEffect()
         {
             Finished?.Invoke(this);
-            Destroy(gameObject);
-            // gameObject.SetActive(false);
+
+            Pooler.Instance.ReturnToPool(gameObject);
+            gameObject.SetActive(false);
         }
 
         private void OnDisable()
